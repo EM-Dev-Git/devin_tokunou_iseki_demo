@@ -539,7 +539,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Format(Fields!SURYO.Value,"#,###") &amp; Fields!TANI.Value</Value>
+                                  <Value>=Format(Fields!SURYO.Value,"#,###")</Value>
                                   <Style>
                                     <FontFamily>ＭＳ ゴシック</FontFamily>
                                     <Color>=IIf(Fields!SURYO.Value &lt; 0,"Red","Black")</Color>
