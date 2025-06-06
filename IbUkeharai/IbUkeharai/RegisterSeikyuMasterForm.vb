@@ -29,6 +29,7 @@ Namespace IbUkeharai
 			Me._goukei = 0L
 			Me.TANI_EN = "円"
 			Me.TANI_PC = "%"
+		Me.TANI_OPTIONS = New String() {"個", "本", "台", "式", "kg", "m", "㎡", "その他"}
 			Me.BASESQL = "SELECT '' AS KUBUN, M.UCHIWAKE, M.SURYO, M.TANI, M.TANKA, M.KINGAKU, M.KAZEI_KBN, M.MEISAI_UMU, M.SAKI_CD, M.TEKIYO, M.SAKU_KBN FROM Ukeharai.T_SEIKYUM AS M LEFT JOIN Ukeharai.T_SEIKYU AS H ON H.TORI_CD = M.TORI_CD AND H.SEIKYU_YYYYMM = M.SEIKYU_YYYYMM "
 			Me._bkcolor_readonly = SystemColors.GradientInactiveCaption
 			Me._bkcolor_normal = Color.White
@@ -1574,8 +1575,12 @@ IL_13C0:
 			Me._gridViewInfo = gridViewInfo
 			Me._gridViewInfo.listOfHidden.Add("SAKU_KBN")
 			Me._gridViewInfo.DisplayGridView(sql, 0)
-			Me.InitDisplay()
-			Me.CclDateTimePicker1.Value = DateAndTime.Now
+		Me.InitDisplay()
+		Me.CclDateTimePicker1.Value = DateAndTime.Now
+		If Me._gridViewInfo IsNot Nothing AndAlso Me.UcDgv.CustDgv.Columns.Contains("KINGAKU") Then
+			Me.UcDgv.CustDgv.Columns("KINGAKU").ReadOnly = True
+			Me.UcDgv.CustDgv.Columns("KINGAKU").DefaultCellStyle.BackColor = Me._bkcolor_readonly
+		End If
 		End Sub
 
 		Private Sub UcDgv_CellEndEdit(sender As Object, e As DataGridViewCellEventArgs) Handles UcDgv.DgvCellEndEdit
@@ -1627,6 +1632,35 @@ IL_13C0:
 					dataGridViewRow.Cells("MEISAI_UMU").ErrorText = "入力値に誤りがあります！"
 				End If
 			End If
+			If "TANKA".Equals(dataGridViewColumn.Name) Or "SURYO".Equals(dataGridViewColumn.Name) Then
+				Dim tanka As Double = 0
+				Dim suryo As Double = 0
+				If Not IsNothing(dataGridViewRow.Cells("TANKA").Value) AndAlso IsNumeric(dataGridViewRow.Cells("TANKA").Value) Then
+					tanka = Convert.ToDouble(dataGridViewRow.Cells("TANKA").Value)
+				End If
+				If Not IsNothing(dataGridViewRow.Cells("SURYO").Value) AndAlso IsNumeric(dataGridViewRow.Cells("SURYO").Value) Then
+					suryo = Convert.ToDouble(dataGridViewRow.Cells("SURYO").Value)
+				End If
+				dataGridViewRow.Cells("KINGAKU").Value = tanka * suryo
+			End If
+			If "TANI".Equals(dataGridViewColumn.Name) Then
+				dataGridViewRow.Cells("TANI").ErrorText = Nothing
+				Dim taniValue As String = Conversions.ToString(dataGridViewRow.Cells("TANI").Value)
+				If String.IsNullOrEmpty(taniValue) Then
+					dataGridViewRow.Cells("TANI").ErrorText = "単位は必須項目です。"
+				ElseIf Not Me.TANI_OPTIONS.Contains(taniValue) Then
+					dataGridViewRow.Cells("TANI").ErrorText = "有効な単位を選択してください。"
+				End If
+			End If
+			For Each cell As DataGridViewCell In dataGridViewRow.Cells
+				If cell.ColumnIndex >= 0 AndAlso Not customDataGridView.Columns(cell.ColumnIndex).ReadOnly Then
+					If IsNothing(cell.Value) OrElse String.IsNullOrEmpty(cell.Value.ToString().Trim()) Then
+						cell.Style.BackColor = Color.LightYellow
+					Else
+						cell.Style.BackColor = Me._bkcolor_normal
+					End If
+				End If
+			Next
 IL_330:
 			dataGridViewRow = Nothing
 		End Sub
@@ -1733,6 +1767,8 @@ IL_330:
 		Private TANI_EN As String
 
 		Private TANI_PC As String
+
+	Private TANI_OPTIONS As String()
 
 		Private BASESQL As String
 

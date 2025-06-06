@@ -200,7 +200,7 @@
                   <Width>1.68974cm</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>2.3cm</Width>
+                  <Width>3.0cm</Width>
                 </TablixColumn>
                 <TablixColumn>
                   <Width>0.8cm</Width>
@@ -539,7 +539,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Format(Fields!SURYO.Value,"#,###") &amp; Fields!TANI.Value</Value>
+                                  <Value>=Format(Fields!SURYO.Value,"#,###")</Value>
                                   <Style>
                                     <FontFamily>ＭＳ ゴシック</FontFamily>
                                     <Color>=IIf(Fields!SURYO.Value &lt; 0,"Red","Black")</Color>
