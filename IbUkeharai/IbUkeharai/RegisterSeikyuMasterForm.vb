@@ -1574,68 +1574,168 @@ IL_13C0:
 			Me._gridViewInfo = gridViewInfo
 			Me._gridViewInfo.listOfHidden.Add("SAKU_KBN")
 			Me._gridViewInfo.DisplayGridView(sql, 0)
-			Me.InitDisplay()
-			Me.CclDateTimePicker1.Value = DateAndTime.Now
-		End Sub
+		Me.InitDisplay()
+		Me.CclDateTimePicker1.Value = DateAndTime.Now
+		Me.SetupKingakuColumnReadOnly()
+		Me.SetupTaniColumn()
+	End Sub
 
-		Private Sub UcDgv_CellEndEdit(sender As Object, e As DataGridViewCellEventArgs) Handles UcDgv.DgvCellEndEdit
-			Dim customDataGridView As CustomDataGridView = CType(sender, CustomDataGridView)
-			Dim dataGridViewColumn As DataGridViewColumn = customDataGridView.Columns(e.ColumnIndex)
-			Dim dataGridViewRow As DataGridViewRow = customDataGridView.Rows(e.RowIndex)
-			If Operators.ConditionalCompareObjectEqual(customDataGridView.CellValuePre, dataGridViewRow.Cells(e.ColumnIndex).Value, False) Then
+	Private Sub UcDgv_CellEndEdit(sender As Object, e As DataGridViewCellEventArgs) Handles UcDgv.DgvCellEndEdit
+		Dim customDataGridView As CustomDataGridView = CType(sender, CustomDataGridView)
+		Dim dataGridViewColumn As DataGridViewColumn = customDataGridView.Columns(e.ColumnIndex)
+		Dim dataGridViewRow As DataGridViewRow = customDataGridView.Rows(e.RowIndex)
+		If Operators.ConditionalCompareObjectEqual(customDataGridView.CellValuePre, dataGridViewRow.Cells(e.ColumnIndex).Value, False) Then
+			Return
+		End If
+
+		If "TANKA".Equals(dataGridViewColumn.Name) Or "SURYO".Equals(dataGridViewColumn.Name) Then
+			Me.CalculateKingaku(dataGridViewRow)
+		End If
+
+		Me.ValidateInputFields(dataGridViewRow)
+
+		If "TANI".Equals(dataGridViewColumn.Name) Then
+			Me.ValidateTaniField(dataGridViewRow)
+		End If
+
+		If "SAKI_CD".Equals(dataGridViewColumn.Name) Then
+			dataGridViewRow.Cells("SAKI_CD").ErrorText = Nothing
+			If IsNothing(RuntimeHelpers.GetObjectValue(dataGridViewRow.Cells(e.ColumnIndex).Value)) Then
 				Return
 			End If
-			If "SAKI_CD".Equals(dataGridViewColumn.Name) Then
-				dataGridViewRow.Cells("SAKI_CD").ErrorText = Nothing
-				If IsNothing(RuntimeHelpers.GetObjectValue(dataGridViewRow.Cells(e.ColumnIndex).Value)) Then
-					Return
-				End If
-				Dim text As String = dataGridViewRow.Cells(e.ColumnIndex).Value.ToString().Trim()
-				Dim text2 As String = "SELECT SAKI_CD FROM Ukeharai.M_SAKI WHERE SAKI_CD ='" + text + "'"
-				Using sqlDataBase As New SqlDataBase(Me._conf.xmlConfData.xDataBase)
-					Dim sqldata As String = sqlDataBase.getSQLData(text2, False)
-					If String.IsNullOrEmpty(sqldata) Then
-						Try
-							If sqlDataBase.DbData.DataList.Count = 0 Then
-								dataGridViewRow.Cells("SAKI_CD").ErrorText = "入力値に誤りがあります！"
-								DlgMessageBox.Show(String.Format("納入先コードが存在しません。[{0}]", text), "エラー", MessageBoxButtons.OK, MessageBoxIcon.Hand)
-								GoTo IL_330
-							End If
-							dataGridViewRow.Cells("SAKI_CD").ErrorText = Nothing
+			Dim text As String = dataGridViewRow.Cells(e.ColumnIndex).Value.ToString().Trim()
+			Dim text2 As String = "SELECT SAKI_CD FROM Ukeharai.M_SAKI WHERE SAKI_CD ='" + text + "'"
+			Using sqlDataBase As New SqlDataBase(Me._conf.xmlConfData.xDataBase)
+				Dim sqldata As String = sqlDataBase.getSQLData(text2, False)
+				If String.IsNullOrEmpty(sqldata) Then
+					Try
+						If sqlDataBase.DbData.DataList.Count = 0 Then
+							dataGridViewRow.Cells("SAKI_CD").ErrorText = "入力値に誤りがあります！"
+							DlgMessageBox.Show(String.Format("納入先コードが存在しません。[{0}]", text), "エラー", MessageBoxButtons.OK, MessageBoxIcon.Hand)
 							GoTo IL_330
-						Catch ex As Exception
-							DlgMessageBox.Show("グリッド表示中にエラーが発生しました。" & vbCrLf + ex.Message, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Hand)
-							dataGridViewRow.Cells("SAKI_CD").ErrorText = "グリッド表示中にエラーが発生しました。"
-							Return
-						End Try
-					End If
-					DlgMessageBox.Show("SQL実行中にエラーが発生しました。" & vbCrLf & "SQL文:" + text2 + vbCrLf + sqldata, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Hand)
-					dataGridViewRow.Cells("SAKI_CD").ErrorText = "SQL実行中にエラーが発生しました。"
-					Return
-				End Using
-			End If
-			'ここ後で直す
-			If "KAZEI_KBN".Equals(dataGridViewColumn.Name) Then
-				dataGridViewRow.Cells("KAZEI_KBN").ErrorText = Nothing
-				If Not (String.IsNullOrEmpty(Conversions.ToString(dataGridViewRow.Cells("KAZEI_KBN").Value)) Or "1".Equals(RuntimeHelpers.GetObjectValue(dataGridViewRow.Cells("KAZEI_KBN").Value))) Then
-					dataGridViewRow.Cells("KAZEI_KBN").ErrorText = "入力値に誤りがあります！"
+						End If
+						dataGridViewRow.Cells("SAKI_CD").ErrorText = Nothing
+						GoTo IL_330
+					Catch ex As Exception
+						DlgMessageBox.Show("グリッド表示中にエラーが発生しました。" & vbCrLf + ex.Message, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Hand)
+						dataGridViewRow.Cells("SAKI_CD").ErrorText = "グリッド表示中にエラーが発生しました。"
+						Return
+					End Try
 				End If
+				DlgMessageBox.Show("SQL実行中にエラーが発生しました。" & vbCrLf & "SQL文:" + text2 + vbCrLf + sqldata, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Hand)
+				dataGridViewRow.Cells("SAKI_CD").ErrorText = "SQL実行中にエラーが発生しました。"
+				Return
+			End Using
+		End If
+		If "KAZEI_KBN".Equals(dataGridViewColumn.Name) Then
+			dataGridViewRow.Cells("KAZEI_KBN").ErrorText = Nothing
+			If Not (String.IsNullOrEmpty(Conversions.ToString(dataGridViewRow.Cells("KAZEI_KBN").Value)) Or "1".Equals(RuntimeHelpers.GetObjectValue(dataGridViewRow.Cells("KAZEI_KBN").Value))) Then
+				dataGridViewRow.Cells("KAZEI_KBN").ErrorText = "入力値に誤りがあります！"
 			End If
-			If "MEISAI_UMU".Equals(dataGridViewColumn.Name) Then
-				dataGridViewRow.Cells("MEISAI_UMU").ErrorText = Nothing
-				If Not (String.IsNullOrEmpty(Conversions.ToString(dataGridViewRow.Cells("MEISAI_UMU").Value)) Or "1".Equals(RuntimeHelpers.GetObjectValue(dataGridViewRow.Cells("MEISAI_UMU").Value))) Then
-					dataGridViewRow.Cells("MEISAI_UMU").ErrorText = "入力値に誤りがあります！"
-				End If
+		End If
+		If "MEISAI_UMU".Equals(dataGridViewColumn.Name) Then
+			dataGridViewRow.Cells("MEISAI_UMU").ErrorText = Nothing
+			If Not (String.IsNullOrEmpty(Conversions.ToString(dataGridViewRow.Cells("MEISAI_UMU").Value)) Or "1".Equals(RuntimeHelpers.GetObjectValue(dataGridViewRow.Cells("MEISAI_UMU").Value))) Then
+				dataGridViewRow.Cells("MEISAI_UMU").ErrorText = "入力値に誤りがあります！"
 			End If
+		End If
 IL_330:
-			dataGridViewRow = Nothing
-		End Sub
+		dataGridViewRow = Nothing
+	End Sub
 
-		Private Sub RegisterSeikyuMasterForm_KeyUp(sender As Object, e As KeyEventArgs)
-			If e.KeyCode = Keys.F9 Then
-				Me.btnDelete.PerformClick()
+	Private Sub CalculateKingaku(row As DataGridViewRow)
+		Try
+			Dim tanka As Decimal = 0
+			Dim suryo As Decimal = 0
+			
+			If Not IsDBNull(row.Cells("TANKA").Value) AndAlso Not String.IsNullOrEmpty(row.Cells("TANKA").Value?.ToString()) Then
+				Decimal.TryParse(row.Cells("TANKA").Value.ToString(), tanka)
 			End If
-		End Sub
+			
+			If Not IsDBNull(row.Cells("SURYO").Value) AndAlso Not String.IsNullOrEmpty(row.Cells("SURYO").Value?.ToString()) Then
+				Decimal.TryParse(row.Cells("SURYO").Value.ToString(), suryo)
+			End If
+			
+			Dim kingaku As Decimal = tanka * suryo
+			row.Cells("KINGAKU").Value = kingaku
+			
+			Me.RecalculateTotal()
+			
+		Catch ex As Exception
+			OutputLog.WriteLine("CalculateKingaku Error: {0}", New String() {ex.Message})
+		End Try
+	End Sub
+
+	Private Sub ValidateInputFields(row As DataGridViewRow)
+		If row.Cells.Contains("TANKA") Then
+			If IsDBNull(row.Cells("TANKA").Value) OrElse String.IsNullOrEmpty(row.Cells("TANKA").Value?.ToString()) Then
+				row.Cells("TANKA").Style.BackColor = Color.LightYellow
+			Else
+				row.Cells("TANKA").Style.BackColor = Me._bkcolor_normal
+			End If
+		End If
+		
+		If row.Cells.Contains("SURYO") Then
+			If IsDBNull(row.Cells("SURYO").Value) OrElse String.IsNullOrEmpty(row.Cells("SURYO").Value?.ToString()) Then
+				row.Cells("SURYO").Style.BackColor = Color.LightYellow
+			Else
+				row.Cells("SURYO").Style.BackColor = Me._bkcolor_normal
+			End If
+		End If
+	End Sub
+
+	Private Sub ValidateTaniField(row As DataGridViewRow)
+		If row.Cells.Contains("TANI") Then
+			row.Cells("TANI").ErrorText = Nothing
+			
+			If IsDBNull(row.Cells("TANI").Value) OrElse String.IsNullOrEmpty(row.Cells("TANI").Value?.ToString()) Then
+				row.Cells("TANI").ErrorText = "単位は必須入力です"
+				row.Cells("TANI").Style.BackColor = Color.LightPink
+			Else
+				row.Cells("TANI").Style.BackColor = Me._bkcolor_normal
+			End If
+		End If
+	End Sub
+
+	Private Sub RecalculateTotal()
+		Me.InitGoukei()
+		For Each row As DataGridViewRow In Me.UcDgv.CustDgv.Rows
+			If Not row.IsNewRow AndAlso Not IsDBNull(row.Cells("KINGAKU").Value) Then
+				Dim kingaku As Long = Common.cnvObjToLong(row.Cells("KINGAKU").Value)
+				Me._goukei += kingaku
+			End If
+		Next
+		Me.lblTotal.Text = Me._goukei.ToString("#,##0")
+	End Sub
+
+	Private Sub SetupKingakuColumnReadOnly()
+		If Me.UcDgv.CustDgv.Columns.Contains("KINGAKU") Then
+			Dim kingakuColumn As DataGridViewColumn = Me.UcDgv.CustDgv.Columns("KINGAKU")
+			kingakuColumn.ReadOnly = True
+			kingakuColumn.DefaultCellStyle.BackColor = Me._bkcolor_readonly
+		End If
+	End Sub
+
+	Private Sub SetupTaniColumn()
+		If Me.UcDgv.CustDgv.Columns.Contains("TANI") Then
+			Dim taniColumn As DataGridViewComboBoxColumn = New DataGridViewComboBoxColumn()
+			taniColumn.Name = "TANI"
+			taniColumn.HeaderText = "単位"
+			taniColumn.DataPropertyName = "TANI"
+			taniColumn.Items.AddRange(New String() {"個", "本", "台", "式", "kg", "m", "㎡", "その他"})
+			taniColumn.DefaultCellStyle.BackColor = Color.LightGoldenrodYellow
+			
+			Dim existingIndex As Integer = Me.UcDgv.CustDgv.Columns("TANI").Index
+			Me.UcDgv.CustDgv.Columns.RemoveAt(existingIndex)
+			Me.UcDgv.CustDgv.Columns.Insert(existingIndex, taniColumn)
+		End If
+	End Sub
+
+	Private Sub RegisterSeikyuMasterForm_KeyUp(sender As Object, e As KeyEventArgs)
+		If e.KeyCode = Keys.F9 Then
+			Me.btnDelete.PerformClick()
+		End If
+	End Sub
 
 		Private Sub ComboTori1_TextChanged(sender As Object, e As EventArgs) Handles ComboTori1.TextChanged
 			Dim itemInfomation As ItemInfomation = CType(Me.ComboTori1.SelectedItem, ItemInfomation)
